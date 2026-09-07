@@ -1,0 +1,9 @@
+AIRLABS_API_KEY=
+AERODATABOX_API_KEY=
+# Open-Meteo requires no API key — leave blank
+# Local dev uses SQLite — leave DATABASE_URL commented out unless you want Postgres
+# DATABASE_URL=postgres://user:password@localhost:5432/dbname
+DJANGO_SETTINGS_MODULE=core.settings.dev
+SECRET_KEY=django-insecure-z%j7+#rjl4jgfv2s5swd22vwn&mvwtp&3#a+s&=s4lyed@54!o
+# Optional: set to 1 if you have Redis running and want to use it for caching
+# USE_REDIS=1

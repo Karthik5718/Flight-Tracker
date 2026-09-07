@@ -1,0 +1,5 @@
+# Frontend env — OpenStreetMap via Leaflet needs NO token
+# Just paste your keys in backend/.env — frontend talks to Django via /api proxy
+VITE_API_BASE_URL=http://127.0.0.1:8000
+# Optional if you ever switch to Mapbox (not used now)
+# VITE_MAPBOX_TOKEN=
