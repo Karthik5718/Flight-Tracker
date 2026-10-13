@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'airports',
     'weather',
     'tracking',
+    'booking',
 ]
 
 

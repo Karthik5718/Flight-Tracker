@@ -1,5 +1,6 @@
-AIRLABS_API_KEY=
+AIRLABS_API_KEY=c7aba1ee-0682-4e59-a72d-cf04dfcee293
 AERODATABOX_API_KEY=
+IGNAV_API_KEY=
 # Open-Meteo requires no API key — leave blank
 # Local dev uses SQLite — leave DATABASE_URL commented out unless you want Postgres
 # DATABASE_URL=postgres://user:password@localhost:5432/dbname
