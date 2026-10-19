@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { StatusChip, DelayChip } from '../components/ui';
 import {
   Building2,
   Search,
@@ -14,7 +15,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Info,
-  CheckCircle2,
   Navigation,
 } from 'lucide-react';
 import {
@@ -68,143 +68,55 @@ function formatTime(val) {
 
 function UpcomingFlightsTable({ flights, direction = 'dep', onSelectFlight }) {
   if (!flights || !flights.length) {
-    return (
-      <div style={{
-        background: 'var(--bg-panel)',
-        border: '1px dashed var(--border-color)',
-        borderRadius: 12,
-        padding: '2.5rem 1rem',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-        fontSize: '0.9rem',
-      }}>
-        No upcoming {direction === 'dep' ? 'departures' : 'arrivals'} scheduled in the immediate window.
-      </div>
-    );
+    return <div className="empty">Nothing further scheduled.</div>;
   }
 
-  const getStatusBadge = (status, delay) => {
-    const s = (status || '').toLowerCase();
-    let bg = '#27272a';
-    let color = '#a1a1aa';
-    let border = '#3f3f46';
-
-    if (s === 'en-route' || s === 'active' || s === 'landed') {
-      bg = 'rgba(74, 222, 128, 0.15)';
-      color = '#4ade80';
-      border = 'rgba(74, 222, 128, 0.4)';
-    } else if (s === 'delayed' || (delay != null && delay > 0)) {
-      bg = 'rgba(250, 204, 21, 0.15)';
-      color = '#facc15';
-      border = 'rgba(250, 204, 21, 0.4)';
-    } else if (s === 'cancelled') {
-      bg = 'rgba(239, 68, 68, 0.15)';
-      color = '#ef4444';
-      border = 'rgba(239, 68, 68, 0.4)';
-    } else if (s === 'scheduled') {
-      bg = 'rgba(96, 165, 250, 0.15)';
-      color = '#60a5fa';
-      border = 'rgba(96, 165, 250, 0.4)';
-    }
-
-    return (
-      <span style={{
-        padding: '3px 8px',
-        borderRadius: 999,
-        fontSize: '0.72rem',
-        fontWeight: 700,
-        background: bg,
-        color: color,
-        border: `1px solid ${border}`,
-        textTransform: 'uppercase',
-        letterSpacing: '0.04em',
-        display: 'inline-block',
-      }}>
-        {status || 'Scheduled'}
-      </span>
-    );
-  };
-
   return (
-    <div style={{
-      background: 'var(--bg-panel)',
-      border: '1px solid var(--border-color)',
-      borderRadius: 12,
-      overflow: 'hidden',
-    }}>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{
-              background: '#121215',
-              borderBottom: '1px solid var(--border-color)',
-              color: 'var(--text-muted)',
-              fontSize: '0.72rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}>
-              <th style={{ padding: '0.75rem 1rem' }}>Flight</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Airline</th>
-              <th style={{ padding: '0.75rem 1rem' }}>{direction === 'dep' ? 'Destination' : 'Origin'}</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Scheduled Time</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Delay</th>
-            </tr>
-          </thead>
-          <tbody>
-            {flights.map((f, i) => {
-              const timeVal = direction === 'dep' ? f.scheduled_departure : f.scheduled_arrival;
-              const routeVal = direction === 'dep' ? f.destination : f.origin;
-              const canClick = Boolean(f.flight_number && f.flight_number !== '—');
-              return (
-                <tr
-                  key={`${f.flight_number || 'flt'}-${i}`}
-                  onClick={() => canClick && onSelectFlight && onSelectFlight(f.flight_number)}
-                  style={{
-                    borderBottom: i < flights.length - 1 ? '1px solid var(--border-color)' : 'none',
-                    cursor: canClick ? 'pointer' : 'default',
-                    transition: 'background-color 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (canClick) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: canClick ? '#4ade80' : '#fff' }}>
-                    <div>{f.flight_number || '—'}</div>
-                    {f.codeshares && f.codeshares.length > 0 && (
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 400, marginTop: 2 }}>
-                        Codeshare: {f.codeshares.slice(0, 2).join(', ')}{f.codeshares.length > 2 ? ` +${f.codeshares.length - 2}` : ''}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#d4d4d8' }}>
-                    {f.airline || '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#d4d4d8' }}>
-                    {routeVal || '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
-                    {formatTime(timeVal)}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {getStatusBadge(f.status, f.delay_minutes)}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {f.delay_minutes != null && f.delay_minutes > 0 ? (
-                      <span style={{ color: '#facc15', fontWeight: 600 }}>+{f.delay_minutes}m</span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div style={{ overflowX: 'auto' }}>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>Airline</th>
+            <th>{direction === 'dep' ? 'To' : 'From'}</th>
+            <th>Scheduled</th>
+            <th>Status</th>
+            <th>Delay</th>
+          </tr>
+        </thead>
+        <tbody>
+          {flights.map((f, i) => {
+            const timeVal = direction === 'dep' ? f.scheduled_departure : f.scheduled_arrival;
+            const routeVal = direction === 'dep' ? f.destination : f.origin;
+            const canClick = Boolean(f.flight_number && f.flight_number !== '\u2014');
+            return (
+              <tr
+                key={`${f.flight_number || 'flt'}-${i}`}
+                className={canClick ? 'is-clickable' : ''}
+                onClick={() => canClick && onSelectFlight && onSelectFlight(f.flight_number)}
+              >
+                <td className="is-strong mono">
+                  {f.flight_number || '\u2014'}
+                  {f.codeshares && f.codeshares.length > 0 && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-3)', fontWeight: 400, marginTop: 2 }}>
+                      +{f.codeshares.length} codeshare{f.codeshares.length > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </td>
+                <td className="mono">{f.airline || '\u2014'}</td>
+                <td className="mono">{routeVal || '\u2014'}</td>
+                <td className="mono">{formatTime(timeVal)}</td>
+                <td>
+                  <StatusChip status={f.status} />
+                </td>
+                <td>
+                  <DelayChip minutes={f.delay_minutes} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -334,7 +246,7 @@ const CongestionPrediction = () => {
         setHistoryRecords(historyRes.value.data.records);
         hasAnySuccess = true;
       } else {
-        setHistoryError('Historical passenger and flight records are not available for this airport in the dataset.');
+        setHistoryError('No passenger history for this airport.');
       }
 
       if (!hasAnySuccess) {
@@ -499,16 +411,13 @@ const CongestionPrediction = () => {
   }, [historyRecords]);
 
   return (
-    <div style={{ maxWidth: 1220, margin: '0 auto', padding: '1.5rem 1.25rem' }}>
-      {/* =========================================================================
-          SECTION 1: Airport search and selected airport header
-          ========================================================================= */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, fontSize: '1.8rem' }}>
-            <Building2 color="#4ade80" /> Airport Congestion & Operations Dashboard
-          </h1>
-          {selectedAirportCode && (
+    <div className="shell page">
+      <div className="page-head">
+        <div>
+          <h1>Airport load</h1>
+          <p className="lede">Live movements, how busy the airport is, and multi-year passenger history.</p>
+        </div>
+        {selectedAirportCode && (
             <button
               onClick={() => loadAirportData(selectedAirportCode)}
               disabled={loading}
@@ -516,9 +425,9 @@ const CongestionPrediction = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: '#18181b',
-                color: '#d4d4d8',
-                border: '1px solid var(--border-color)',
+                background: '#141a24',
+                color: '#c3ccd8',
+                border: '1px solid var(--line)',
                 padding: '0.5rem 0.9rem',
                 borderRadius: 8,
                 fontSize: '0.85rem',
@@ -529,40 +438,28 @@ const CongestionPrediction = () => {
               <RefreshCw size={14} className={loading ? 'spin' : ''} />
               {loading ? 'Refreshing...' : 'Refresh'}
             </button>
-          )}
-        </div>
-        <p style={{ color: 'var(--text-muted)', margin: '0 0 1.25rem 0', fontSize: '0.95rem' }}>
-          Explore estimated activity/congestion indicators, live scheduled operations, and authoritative multi-year traffic trends.
-        </p>
+        )}
+      </div>
 
         {/* Search input with suggestions */}
         <div ref={searchContainerRef} style={{ position: 'relative', marginBottom: '1rem' }}>
           <form
             onSubmit={handleSearchSubmit}
-            style={{
-              display: 'flex',
-              gap: '0.5rem',
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--border-color)',
-              padding: '0.6rem',
-              borderRadius: 12,
-              flexWrap: 'wrap',
-              alignItems: 'center',
-            }}
+            style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', maxWidth: 520, marginBottom: 24 }}
           >
             <div
               style={{
                 display: 'flex',
-                gap: '0.6rem',
+                gap: 10,
                 flex: '1 1 300px',
                 alignItems: 'center',
-                background: '#09090b',
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                padding: '0.55rem 0.75rem',
+                background: 'var(--bg)',
+                border: '1px solid var(--line-2)',
+                borderRadius: 'var(--r-control)',
+                padding: '10px 12px',
               }}
             >
-              <Search size={16} color="#a1a1aa" />
+              <Search size={16} color="#8b98a8" />
               <input
                 value={searchInput}
                 onChange={handleInputChange}
@@ -575,7 +472,7 @@ const CongestionPrediction = () => {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#fff',
+                  color: 'var(--text)',
                   fontSize: '0.95rem',
                 }}
               />
@@ -590,7 +487,7 @@ const CongestionPrediction = () => {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#a1a1aa',
+                    color: '#8b98a8',
                     cursor: 'pointer',
                     padding: 2,
                     display: 'flex',
@@ -602,20 +499,10 @@ const CongestionPrediction = () => {
             </div>
             <button
               type="submit"
+              className="btn btn--primary"
               disabled={loading || !searchInput.trim()}
-              style={{
-                background: '#4ade80',
-                color: '#000',
-                border: 'none',
-                padding: '0.65rem 1.25rem',
-                borderRadius: 8,
-                fontWeight: 700,
-                cursor: loading || !searchInput.trim() ? 'not-allowed' : 'pointer',
-                opacity: loading || !searchInput.trim() ? 0.6 : 1,
-                fontSize: '0.9rem',
-              }}
             >
-              {loading ? 'Loading...' : 'Check Congestion'}
+              {loading ? 'Loading...' : 'Open airport'}
             </button>
           </form>
 
@@ -629,8 +516,7 @@ const CongestionPrediction = () => {
                 right: 0,
                 marginTop: 6,
                 background: '#121215',
-                border: '1px solid var(--border-color)',
-                borderRadius: 10,
+                                borderRadius: 'var(--r-panel)',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
                 zIndex: 50,
                 maxHeight: 280,
@@ -662,7 +548,7 @@ const CongestionPrediction = () => {
                       style={{
                         background: 'rgba(74, 222, 128, 0.15)',
                         border: '1px solid rgba(74, 222, 128, 0.3)',
-                        color: '#4ade80',
+                        color: '#4da3ff',
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: 6,
@@ -672,10 +558,10 @@ const CongestionPrediction = () => {
                     >
                       {item.iata}
                     </span>
-                    <span style={{ color: '#fff', fontSize: '0.92rem' }}>{item.name}</span>
+                    <span style={{ color: 'var(--text)', fontSize: '0.92rem' }}>{item.name}</span>
                   </div>
                   {item.icao && (
-                    <span style={{ color: '#71717a', fontSize: '0.8rem', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span style={{ color: '#6b7887', fontSize: '0.8rem', fontFamily: 'JetBrains Mono, monospace' }}>
                       {item.icao}
                     </span>
                   )}
@@ -689,9 +575,8 @@ const CongestionPrediction = () => {
         {airportInfo && (
           <div
             style={{
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 12,
+              background: 'var(--surface)',
+                            borderRadius: 'var(--r-panel)',
               padding: '1.25rem 1.5rem',
               display: 'flex',
               alignItems: 'center',
@@ -704,7 +589,7 @@ const CongestionPrediction = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
                 <span
                   style={{
-                    background: '#4ade80',
+                    background: '#4da3ff',
                     color: '#000',
                     padding: '3px 10px',
                     borderRadius: 6,
@@ -715,14 +600,14 @@ const CongestionPrediction = () => {
                 >
                   {airportInfo.iata || selectedAirportCode}
                 </span>
-                <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#fff' }}>
+                <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--text)' }}>
                   {airportInfo.name || selectedAirportCode}
                 </h2>
               </div>
-              <div style={{ display: 'flex', gap: '1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '1.25rem', color: 'var(--text-2)', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                 {airportInfo.icao && (
                   <span>
-                    ICAO: <strong style={{ color: '#d4d4d8', fontFamily: 'JetBrains Mono, monospace' }}>{airportInfo.icao}</strong>
+                    ICAO: <strong style={{ color: '#c3ccd8', fontFamily: 'JetBrains Mono, monospace' }}>{airportInfo.icao}</strong>
                   </span>
                 )}
                 {airportInfo.lat != null && airportInfo.lon != null && (
@@ -733,32 +618,15 @@ const CongestionPrediction = () => {
                 )}
               </div>
             </div>
-
-            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-              <span
-                style={{
-                  fontSize: '0.78rem',
-                  color: '#4ade80',
-                  background: 'rgba(74, 222, 128, 0.1)',
-                  border: '1px solid rgba(74, 222, 128, 0.25)',
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  fontWeight: 600,
-                }}
-              >
-                ● Active Airport Selection
-              </span>
-            </div>
           </div>
         )}
-      </div>
 
       {/* Global / Top-level Error State */}
       {mainError && (
         <div
           style={{
-            background: 'rgba(239,68,68,0.1)',
-            border: '1px solid #ef4444',
+            background: 'rgba(244,104,95,0.1)',
+            border: '1px solid #f4685f',
             color: '#fecaca',
             padding: '1rem 1.25rem',
             borderRadius: 12,
@@ -771,7 +639,7 @@ const CongestionPrediction = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <AlertTriangle size={20} color="#ef4444" />
+            <AlertTriangle size={20} color="#f4685f" />
             <div>
               <strong>Error Loading Airport</strong>
               <div style={{ fontSize: '0.9rem', color: '#fca5a5', marginTop: 2 }}>{mainError}</div>
@@ -781,8 +649,8 @@ const CongestionPrediction = () => {
             <button
               onClick={() => loadAirportData(selectedAirportCode)}
               style={{
-                background: '#ef4444',
-                color: '#fff',
+                background: '#f4685f',
+                color: 'var(--text)',
                 border: 'none',
                 padding: '0.45rem 0.9rem',
                 borderRadius: 6,
@@ -801,19 +669,19 @@ const CongestionPrediction = () => {
       {!selectedAirportCode && !loading && !mainError && (
         <div
           style={{
-            background: 'var(--bg-panel)',
-            border: '1px dashed var(--border-color)',
+            background: 'var(--surface)',
+            border: '1px dashed var(--line)',
             borderRadius: 16,
             padding: '3rem 2rem',
             textAlign: 'center',
             marginBottom: '2rem',
           }}
         >
-          <Building2 size={48} color="#4ade80" style={{ marginBottom: '1rem', opacity: 0.8 }} />
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: '#fff' }}>
+          <Building2 size={48} color="#4da3ff" style={{ marginBottom: '1rem', opacity: 0.8 }} />
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--text)' }}>
             Select an Airport to View Live & Historical Telemetry
           </h2>
-          <p style={{ color: 'var(--text-muted)', maxWidth: 600, margin: '0 auto 1.75rem auto', lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text-2)', maxWidth: 600, margin: '0 auto 1.75rem auto', lineHeight: 1.6 }}>
             Search by airport name or 3-letter IATA code in the box above, or click one of the popular hubs below to explore real-time activity and long-term historical trends.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -822,9 +690,9 @@ const CongestionPrediction = () => {
                 key={item.code}
                 onClick={() => selectAirport(item.code)}
                 style={{
-                  background: '#09090b',
-                  border: '1px solid var(--border-color)',
-                  color: '#f4f4f5',
+                  background: '#0a0e14',
+                  border: '1px solid var(--line)',
+                  color: '#e9eef5',
                   padding: '0.6rem 1rem',
                   borderRadius: 8,
                   cursor: 'pointer',
@@ -835,15 +703,15 @@ const CongestionPrediction = () => {
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#4ade80';
-                  e.currentTarget.style.background = '#18181b';
+                  e.currentTarget.style.borderColor = '#4da3ff';
+                  e.currentTarget.style.background = '#141a24';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-color)';
-                  e.currentTarget.style.background = '#09090b';
+                  e.currentTarget.style.borderColor = 'var(--line)';
+                  e.currentTarget.style.background = '#0a0e14';
                 }}
               >
-                <strong style={{ color: '#4ade80', fontFamily: 'JetBrains Mono, monospace' }}>{item.code}</strong>
+                <strong style={{ color: '#4da3ff', fontFamily: 'JetBrains Mono, monospace' }}>{item.code}</strong>
                 <span>{item.city}</span>
               </button>
             ))}
@@ -855,17 +723,16 @@ const CongestionPrediction = () => {
       {loading && (
         <div
           style={{
-            background: 'var(--bg-panel)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 12,
+            background: 'var(--surface)',
+                        borderRadius: 'var(--r-panel)',
             padding: '3rem',
             textAlign: 'center',
             marginBottom: '2rem',
           }}
         >
-          <RefreshCw size={36} color="#4ade80" className="spin" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ margin: 0, color: '#fff' }}>Fetching Airport Telemetry & Historical Dataset...</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+          <RefreshCw size={36} color="#4da3ff" className="spin" style={{ marginBottom: '1rem' }} />
+          <h3 style={{ margin: 0, color: 'var(--text)' }}>Fetching Airport Telemetry & Historical Dataset...</h3>
+          <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
             Loading live schedules, delay metrics, and monthly records for {selectedAirportCode}...
           </p>
         </div>
@@ -880,10 +747,10 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Plane size={18} color="#4ade80" /> Estimated Airport Activity & Congestion Score
+                <Plane size={18} color="#4da3ff" /> Airport load
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
-                Calculated directly from live scheduled flights, active turnarounds, and delay patterns.
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+                Live departures, arrivals and how many of them are running late.
               </p>
             </div>
 
@@ -901,43 +768,17 @@ const CongestionPrediction = () => {
                   fontSize: '0.88rem',
                 }}
               >
-                <AlertTriangle size={18} color="#facc15" />
-                <span>{liveError} Historical traffic metrics remain accessible below.</span>
+                <AlertTriangle size={18} color="#e0a02c" />
+                <span>{liveError}</span>
               </div>
             ) : processedLive && congestionScore ? (
               <div>
-                {/* Sample Notice when API returns a limited batch */}
-                {processedLive.isPartial && (
-                  <div
-                    style={{
-                      background: 'rgba(250, 204, 21, 0.08)',
-                      border: '1px solid rgba(250, 204, 21, 0.25)',
-                      borderRadius: 10,
-                      padding: '0.65rem 0.9rem',
-                      marginBottom: '1rem',
-                      fontSize: '0.82rem',
-                      color: '#fef08a',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    <Info size={16} color="#facc15" />
-                    <span>
-                      <strong>Schedule sample notice:</strong> Showing {processedLive.totalUniqueFlights} unique flights ({processedLive.totalRecordsFetched} records retrieved)
-                      {processedLive.totalReported ? ` of ${processedLive.totalReported.toLocaleString()} schedule items reported by API provider` : ''}.
-                      {processedLive.totalCodesharesConsolidated > 0 ? ` Consolidated ${processedLive.totalCodesharesConsolidated} codeshare records.` : ''} Metrics reflect the retrieved operational window.
-                    </span>
-                  </div>
-                )}
-
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 2fr', gap: '1rem' }}>
                   {/* Circular Gauge Card */}
                   <div
                     style={{
-                      background: 'var(--bg-panel)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 12,
+                      background: 'var(--surface)',
+                                            borderRadius: 'var(--r-panel)',
                       padding: '1.5rem',
                       display: 'flex',
                       flexDirection: 'column',
@@ -949,54 +790,43 @@ const CongestionPrediction = () => {
                       value={congestionScore.score != null ? congestionScore.score : 0}
                       size={170}
                       strokeWidth={12}
-                      label="Activity Score"
+                      label="Load index"
                     />
                     <div
                       style={{
                         marginTop: '1rem',
                         textAlign: 'center',
                         fontSize: '0.78rem',
-                        color: 'var(--text-muted)',
+                        color: 'var(--text-2)',
                         lineHeight: 1.5,
-                        borderTop: '1px solid var(--border-color)',
+                        borderTop: '1px solid var(--line)',
                         paddingTop: '0.75rem',
                         width: '100%',
                       }}
                     >
-                      <strong>Estimated Activity & Delay Indicator</strong>
-                      <br />
-                      Activity: {congestionScore.activityScore != null ? `${congestionScore.activityScore}/100` : 'N/A'} (70% wt) · Delays: {congestionScore.delayScore != null ? `${congestionScore.delayScore}/100` : 'Not reported'} (30% wt)
-                      <br />
-                      <span style={{ color: '#d4d4d8', fontSize: '0.74rem' }}>
-                        {congestionScore.baseline?.description}
-                      </span>
                       {congestionScore.delayRate != null && (
-                        <>
-                          <br />
-                          <span style={{ color: '#facc15', fontSize: '0.74rem' }}>
-                            Known delay rate: {congestionScore.delayRate.toFixed(1)}% ({congestionScore.delayedFlights}/{congestionScore.knownDelayFlights} flights)
-                          </span>
-                        </>
+                        <div>
+                          {congestionScore.delayRate.toFixed(1)}% of known flights are running late
+                        </div>
                       )}
-                      <br />
-                      <em style={{ color: '#71717a', fontSize: '0.72rem' }}>
-                        Estimated indicator. Not an official measure of terminal crowding.
-                      </em>
+                      <div style={{ color: '#6b7887', fontSize: '0.78rem', marginTop: 4 }}>
+                        Based on {processedLive.totalUniqueFlights} scheduled movements
+                      </div>
                     </div>
                   </div>
 
                   {/* Live KPI Summary Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                     <SummaryCard
-                      title={`Scheduled Departures${processedLive.isPartial ? ' (Sample)' : ''}`}
+                      title={`Scheduled Departures`}
                       value={processedLive.uniqueDepartures.toLocaleString()}
-                      subtitle={`${processedLive.onTimeDepartures || 0} on time · ${processedLive.delayedDepartures || 0} delayed${processedLive.departuresCodeshareCount > 0 ? ` · ${processedLive.departuresCodeshareCount} codeshares merged` : ''}${processedLive.departuresTotalReported ? ` · ${processedLive.departuresTotalReported} reported` : ''}`}
+                      subtitle={`${processedLive.onTimeDepartures || 0} on time · ${processedLive.delayedDepartures || 0} delayed`}
                       icon={<Plane size={18} />}
                     />
                     <SummaryCard
-                      title={`Scheduled Arrivals${processedLive.isPartial ? ' (Sample)' : ''}`}
+                      title={`Scheduled Arrivals`}
                       value={processedLive.uniqueArrivals.toLocaleString()}
-                      subtitle={`${processedLive.onTimeArrivals || 0} on time · ${processedLive.delayedArrivals || 0} delayed${processedLive.arrivalsCodeshareCount > 0 ? ` · ${processedLive.arrivalsCodeshareCount} codeshares merged` : ''}${processedLive.arrivalsTotalReported ? ` · ${processedLive.arrivalsTotalReported} reported` : ''}`}
+                      subtitle={`${processedLive.onTimeArrivals || 0} on time · ${processedLive.delayedArrivals || 0} delayed`}
                       icon={<Plane size={18} style={{ transform: 'rotate(90deg)' }} />}
                     />
                     <SummaryCard
@@ -1023,8 +853,8 @@ const CongestionPrediction = () => {
           <section>
             <div
               style={{
-                background: 'var(--bg-panel)',
-                border: '1px solid #3f3f46',
+                background: 'var(--surface)',
+                border: '1px solid #2e3947',
                 borderRadius: 14,
                 padding: '1.25rem 1.5rem',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
@@ -1038,21 +868,21 @@ const CongestionPrediction = () => {
                   flexWrap: 'wrap',
                   gap: '0.75rem',
                   marginBottom: '1rem',
-                  borderBottom: '1px solid var(--border-color)',
+                  borderBottom: '1px solid var(--line)',
                   paddingBottom: '0.85rem',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <TrendingUp size={22} color="#4ade80" />
-                    <h2 style={{ fontSize: '1.35rem', margin: 0, color: '#fff' }}>
+                    <TrendingUp size={22} color="#4da3ff" />
+                    <h2 style={{ fontSize: '1.35rem', margin: 0, color: 'var(--text)' }}>
                       Historical Annual Passenger Traffic
                     </h2>
                     <span
                       style={{
                         background: 'rgba(74, 222, 128, 0.15)',
                         border: '1px solid rgba(74, 222, 128, 0.4)',
-                        color: '#4ade80',
+                        color: '#4da3ff',
                         fontSize: '0.75rem',
                         fontWeight: 700,
                         padding: '2px 8px',
@@ -1062,7 +892,7 @@ const CongestionPrediction = () => {
                       Core Trend
                     </span>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.35rem 0 0 0' }}>
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.85rem', margin: '0.35rem 0 0 0' }}>
                     Authoritative annual passenger volume for {selectedAirportCode} aggregated from monthly records.
                   </p>
                 </div>
@@ -1070,21 +900,21 @@ const CongestionPrediction = () => {
                 {annualSummary && (
                   <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                      <div style={{ color: 'var(--text-2)', fontSize: '0.72rem' }}>
                         Latest ({annualSummary.latestYear})
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fff' }}>
+                      <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text)' }}>
                         {annualSummary.latestPassengers.toLocaleString()}
                         {annualSummary.latestIsPartial && (
-                          <span style={{ fontSize: '0.72rem', color: '#facc15', marginLeft: 4 }}>*Partial</span>
+                          <span style={{ fontSize: '0.72rem', color: '#e0a02c', marginLeft: 4 }}>*Partial</span>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                      <div style={{ color: 'var(--text-2)', fontSize: '0.72rem' }}>
                         Peak ({annualSummary.highestYear})
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#4ade80' }}>
+                      <div style={{ fontWeight: 800, fontSize: '1.15rem', color: '#4da3ff' }}>
                         {annualSummary.highestPassengers.toLocaleString()}
                       </div>
                     </div>
@@ -1111,9 +941,9 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BarChart3 size={18} color="#60a5fa" /> Annual Flight Operations Trend (Departures vs Arrivals)
+                <BarChart3 size={18} color="#46c46a" /> Annual Flight Operations Trend (Departures vs Arrivals)
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
                 Long-term comparison of historical departures and arrivals recorded annually.
               </p>
             </div>
@@ -1139,9 +969,9 @@ const CongestionPrediction = () => {
               <div>
                 <div style={{ marginBottom: '0.6rem' }}>
                   <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Calendar size={16} color="#4ade80" /> Monthly Passenger Traffic Timeline
+                    <Calendar size={16} color="#4da3ff" /> Monthly Passenger Traffic Timeline
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
                     Continuous timeline of monthly passenger counts across all recorded years.
                   </p>
                 </div>
@@ -1158,9 +988,9 @@ const CongestionPrediction = () => {
               <div>
                 <div style={{ marginBottom: '0.6rem' }}>
                   <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <BarChart3 size={16} color="#facc15" /> Monthly Seasonality Profile
+                    <BarChart3 size={16} color="#e0a02c" /> Monthly Seasonality Profile
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
                     Average monthly volume across all recorded years highlighting seasonal peaks.
                   </p>
                 </div>
@@ -1181,9 +1011,9 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={18} color="#4ade80" /> Year-over-Year Passenger Growth & Historical Summary
+                <TrendingUp size={18} color="#4da3ff" /> Year-over-Year Passenger Growth & Historical Summary
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
                 Annual growth percentage dynamics and key historical milestones.
               </p>
             </div>
@@ -1240,9 +1070,9 @@ const CongestionPrediction = () => {
               <div>
                 <div style={{ marginBottom: '0.6rem' }}>
                   <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plane size={16} color="#60a5fa" /> Live Departures vs Arrivals Split
+                    <Plane size={16} color="#46c46a" /> Live Departures vs Arrivals Split
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
                     Distribution of unique scheduled departures vs arrivals in retrieved schedule.
                   </p>
                 </div>
@@ -1261,9 +1091,9 @@ const CongestionPrediction = () => {
               <div>
                 <div style={{ marginBottom: '0.6rem' }}>
                   <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Clock size={16} color="#fb923c" /> Live Delay Breakdown
+                    <Clock size={16} color="#e88a4c" /> Live Delay Breakdown
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
                     Flight delay status breakdown across scheduled flights with reported delay metrics.
                   </p>
                 </div>
@@ -1288,9 +1118,9 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Plane size={18} color="#4ade80" /> Top 10 Upcoming Departures
+                <Plane size={18} color="#4da3ff" /> Top 10 Upcoming Departures
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
                 Chronologically ordered upcoming departures. Codeshares deduplicated. Click any flight to track.
               </p>
             </div>
@@ -1312,9 +1142,9 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Plane size={18} color="#60a5fa" style={{ transform: 'rotate(90deg)' }} /> Top 10 Upcoming Arrivals
+                <Plane size={18} color="#46c46a" style={{ transform: 'rotate(90deg)' }} /> Top 10 Upcoming Arrivals
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
                 Chronologically ordered upcoming arrivals. Codeshares deduplicated. Click any flight to track.
               </p>
             </div>
@@ -1336,10 +1166,10 @@ const CongestionPrediction = () => {
           <section>
             <div style={{ marginBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Info size={18} color="#4ade80" /> Historical Monthly Benchmark Insight
+                <Info size={18} color="#4da3ff" /> Historical Monthly Benchmark Insight
               </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
-                Baseline comparison against same-month historical traffic and flight activity.
+              <p style={{ color: 'var(--text-2)', fontSize: '0.82rem', margin: '0.25rem 0 0 0' }}>
+                This month against the same month in previous years.
               </p>
             </div>
 
@@ -1348,16 +1178,15 @@ const CongestionPrediction = () => {
             ) : monthlyInsight ? (
               <div
                 style={{
-                  background: 'var(--bg-panel)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 12,
+                  background: 'var(--surface)',
+                                    borderRadius: 'var(--r-panel)',
                   padding: '1.5rem',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <Calendar size={18} color="#4ade80" />
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>
+                    <Calendar size={18} color="#4da3ff" />
+                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)' }}>
                       {monthlyInsight.monthName} Benchmark ({monthlyInsight.currentYear}
                       {monthlyInsight.previousYear ? ` vs ${monthlyInsight.previousYear}` : ''})
                     </span>
@@ -1365,9 +1194,9 @@ const CongestionPrediction = () => {
                   {monthlyInsight.isLatestAvailableBaseline && (
                     <span
                       style={{
-                        background: '#27272a',
-                        border: '1px solid #3f3f46',
-                        color: 'var(--text-muted)',
+                        background: '#212a37',
+                        border: '1px solid #2e3947',
+                        color: 'var(--text-2)',
                         fontSize: '0.72rem',
                         padding: '3px 8px',
                         borderRadius: 999,
@@ -1380,11 +1209,11 @@ const CongestionPrediction = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                   {/* Passenger Traffic */}
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 10, padding: '1rem' }}>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: 4 }}>
+                  <div style={{ background: '#0a0e14', border: '1px solid var(--line)', borderRadius: 10, padding: '1rem' }}>
+                    <div style={{ color: 'var(--text-2)', fontSize: '0.75rem', marginBottom: 4 }}>
                       Monthly Passengers
                     </div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text)' }}>
                       {monthlyInsight.currentPassengers != null ? monthlyInsight.currentPassengers.toLocaleString() : 'N/A'}
                     </div>
                     {monthlyInsight.passengerChange != null && (
@@ -1396,7 +1225,7 @@ const CongestionPrediction = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4,
-                          color: monthlyInsight.passengerChange >= 0 ? '#4ade80' : '#ef4444',
+                          color: monthlyInsight.passengerChange >= 0 ? '#4da3ff' : '#f4685f',
                         }}
                       >
                         {monthlyInsight.passengerChange >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -1406,11 +1235,11 @@ const CongestionPrediction = () => {
                   </div>
 
                   {/* Departures */}
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 10, padding: '1rem' }}>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: 4 }}>
+                  <div style={{ background: '#0a0e14', border: '1px solid var(--line)', borderRadius: 10, padding: '1rem' }}>
+                    <div style={{ color: 'var(--text-2)', fontSize: '0.75rem', marginBottom: 4 }}>
                       Monthly Departures
                     </div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#60a5fa' }}>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#46c46a' }}>
                       {monthlyInsight.currentDepartures != null ? monthlyInsight.currentDepartures.toLocaleString() : 'N/A'}
                     </div>
                     {monthlyInsight.departureChange != null && (
@@ -1422,7 +1251,7 @@ const CongestionPrediction = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4,
-                          color: monthlyInsight.departureChange >= 0 ? '#4ade80' : '#ef4444',
+                          color: monthlyInsight.departureChange >= 0 ? '#4da3ff' : '#f4685f',
                         }}
                       >
                         {monthlyInsight.departureChange >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -1432,11 +1261,11 @@ const CongestionPrediction = () => {
                   </div>
 
                   {/* Arrivals */}
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 10, padding: '1rem' }}>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: 4 }}>
+                  <div style={{ background: '#0a0e14', border: '1px solid var(--line)', borderRadius: 10, padding: '1rem' }}>
+                    <div style={{ color: 'var(--text-2)', fontSize: '0.75rem', marginBottom: 4 }}>
                       Monthly Arrivals
                     </div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#facc15' }}>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#e0a02c' }}>
                       {monthlyInsight.currentArrivals != null ? monthlyInsight.currentArrivals.toLocaleString() : 'N/A'}
                     </div>
                     {monthlyInsight.arrivalChange != null && (
@@ -1448,7 +1277,7 @@ const CongestionPrediction = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4,
-                          color: monthlyInsight.arrivalChange >= 0 ? '#4ade80' : '#ef4444',
+                          color: monthlyInsight.arrivalChange >= 0 ? '#4da3ff' : '#f4685f',
                         }}
                       >
                         {monthlyInsight.arrivalChange >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -1458,7 +1287,7 @@ const CongestionPrediction = () => {
                   </div>
                 </div>
 
-                <p style={{ color: '#71717a', fontSize: '0.8rem', margin: '1rem 0 0 0', lineHeight: 1.5 }}>
+                <p style={{ color: '#6b7887', fontSize: '0.8rem', margin: '1rem 0 0 0', lineHeight: 1.5 }}>
                   Benchmark comparison for {monthlyInsight.monthName} ({monthlyInsight.currentYear} vs {monthlyInsight.previousYear})
                   from authoritative monthly civil aviation traffic records for {selectedAirportCode}.
                 </p>
