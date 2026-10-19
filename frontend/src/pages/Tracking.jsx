@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import Map from '../components/Map';
 import SearchBar from '../components/SearchBar';
@@ -18,8 +18,10 @@ const Tracking = () => {
   const [operatorFilter, setOperatorFilter] = useState('all');
   const [aircraftFilter, setAircraftFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const searchIdRef = useRef(0);
 
   const handleSearch = async (query, type) => {
+    const currentId = ++searchIdRef.current;
     setLoading(true);
     setError('');
     setSearchResults([]);
@@ -110,7 +112,7 @@ const Tracking = () => {
         fetch(`/api/airports/${encodeURIComponent(dest)}/`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       if (oRes && dRes && oRes.lat != null && oRes.lon != null && dRes.lat != null && dRes.lon != null) {
-        setRoute([[oRes.lat, oRes.lon], [dRes.lat, dRes.lon]]);
+        setRoute({ origin: [oRes.lat, oRes.lon], destination: [dRes.lat, dRes.lon] });
       } else {
         setRoute(null);
       }

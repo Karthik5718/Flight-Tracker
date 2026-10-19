@@ -95,6 +95,8 @@ const Home = () => {
         <Card icon={Radar} title="Live Tracking" desc="Search by flight number or airport IATA/ICAO, view results, select a flight, see telemetry and position on OpenStreetMap." to="/tracking" />
         <Card icon={Building2} title="Airport" desc="Map via OpenStreetMap + airport info (AeroDataBox) + weather (Open-Meteo). Departures/arrivals by gate and terminal." to="/airport" />
         <Card icon={Ticket} title="Booking (Simulation)" desc="Search flights with sort/filter, view all results, simulate schedule booking. No real ticketing." to="/booking" badge="Simulation only" />
+        <Card icon={Clock3} title="Delay Prediction" desc="Pick a flight or enter an airline + route (e.g. 6E · DEL → BOM) to see predicted delays and the airline-route average." to="/predictions/delay" />
+        <Card icon={Building2} title="Airport Congestion" desc="Search any configured airport (e.g. DEL, MAA) for its congestion score, category and 1h / 3h / 6h forecast chart." to="/predictions/congestion" />
         <Card icon={Shield} title="ATC Dashboard" desc="ATC-only: live route vs planned path, signals, wind/speed/altitude/heading, anomaly detection, map." to="/atc" badge="ATC verified only" />
       </div>
 
