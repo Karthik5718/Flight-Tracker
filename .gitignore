@@ -39,3 +39,4 @@ db.sqlite3
 node_modules/
 dist/
 dist-ssr/
+.kilo/

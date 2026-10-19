@@ -16,12 +16,12 @@ def airlabs_to_flight(raw_data):
         'status': safe_get(raw_data, 'status'),
         'origin': safe_get(raw_data, 'dep_iata'),
         'destination': safe_get(raw_data, 'arr_iata'),
-        'scheduled_departure': safe_get(raw_data, 'dep_time_utc'),
-        'estimated_departure': safe_get(raw_data, 'dep_estimated_utc'),
-        'actual_departure': safe_get(raw_data, 'dep_actual_utc'),
-        'scheduled_arrival': safe_get(raw_data, 'arr_time_utc'),
-        'estimated_arrival': safe_get(raw_data, 'arr_estimated_utc'),
-        'actual_arrival': safe_get(raw_data, 'arr_actual_utc'),
+        'scheduled_departure': safe_get(raw_data, 'dep_time_utc') or safe_get(raw_data, 'dep_time'),
+        'estimated_departure': safe_get(raw_data, 'dep_estimated_utc') or safe_get(raw_data, 'dep_estimated'),
+        'actual_departure': safe_get(raw_data, 'dep_actual_utc') or safe_get(raw_data, 'dep_actual'),
+        'scheduled_arrival': safe_get(raw_data, 'arr_time_utc') or safe_get(raw_data, 'arr_time'),
+        'estimated_arrival': safe_get(raw_data, 'arr_estimated_utc') or safe_get(raw_data, 'arr_estimated'),
+        'actual_arrival': safe_get(raw_data, 'arr_actual_utc') or safe_get(raw_data, 'arr_actual'),
         'gate': safe_get(raw_data, 'dep_gate'),
         'terminal': safe_get(raw_data, 'dep_terminal'),
         'arr_gate': safe_get(raw_data, 'arr_gate'),
@@ -34,6 +34,9 @@ def airlabs_to_flight(raw_data):
         'delayed': safe_get(raw_data, 'delayed'),
         'dep_delayed': safe_get(raw_data, 'dep_delayed'),
         'arr_delayed': safe_get(raw_data, 'arr_delayed'),
+        'cs_airline': safe_get(raw_data, 'cs_airline_iata'),
+        'cs_flight_number': safe_get(raw_data, 'cs_flight_iata') or safe_get(raw_data, 'cs_flight_number'),
+        'cs_flight_iata': safe_get(raw_data, 'cs_flight_iata'),
     }
 
 def airlabs_schedules_to_list(raw_list):

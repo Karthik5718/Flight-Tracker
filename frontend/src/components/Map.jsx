@@ -8,20 +8,27 @@ import { Plane } from 'lucide-react';
 const Map = ({ position, route, selectedFlight }) => {
   const [map, setMap] = useState(null);
 
-  // Fly to aircraft when live position updates
-  useEffect(() => {
-    if (map && position && position.lat && position.lon) {
-      map.flyTo([position.lat, position.lon], 6, { animate: true, duration: 1.5 });
-    }
-  }, [position, map]);
+  const origin = route?.origin;
+  const destination = route?.destination;
+  const hasOrigin = Array.isArray(origin) && origin.length === 2;
+  const hasDest = Array.isArray(destination) && destination.length === 2;
+  const hasPosition = position && position.lat != null && position.lon != null;
+  const aircraftCoord = hasPosition ? [position.lat, position.lon] : null;
 
-  // Fly to route when route is available and no live position
+  // Fit bounds to all available points
   useEffect(() => {
-    if (map && route && route.length >= 2 && !(position && position.lat && position.lon)) {
-      const bounds = L.latLngBounds(route);
-      map.fitBounds(bounds, { padding: [40, 40] });
+    if (!map) return;
+    const pts = [];
+    if (hasOrigin) pts.push(origin);
+    if (hasDest) pts.push(destination);
+    if (aircraftCoord) pts.push(aircraftCoord);
+    if (pts.length >= 2) {
+      const bounds = L.latLngBounds(pts);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (pts.length === 1) {
+      map.flyTo(pts[0], 6, { animate: true, duration: 1.5 });
     }
-  }, [route, map, position]);
+  }, [map, origin, destination, aircraftCoord]);
 
   const createPlaneIcon = (heading) => {
     const iconHtml = renderToString(
@@ -42,8 +49,15 @@ const Map = ({ position, route, selectedFlight }) => {
     });
   };
 
-  const hasRoute = route && route.length >= 2;
-  const hasPosition = position && position.lat && position.lon;
+  const airportIcon = (color) => L.divIcon({
+    html: `<div style="width:10px;height:10px;background:${color};border:2px solid #fff;border-radius:50%"></div>`,
+    className: 'airport-dot',
+    iconSize: [10, 10],
+    iconAnchor: [5, 5]
+  });
+
+  const travelled = hasOrigin && aircraftCoord ? [origin, aircraftCoord] : null;
+  const remaining = aircraftCoord && hasDest ? [aircraftCoord, destination] : null;
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -58,24 +72,24 @@ const Map = ({ position, route, selectedFlight }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        {hasRoute && (
-          <Polyline positions={route} pathOptions={{ color: '#4ade80', weight: 2, dashArray: '8 6', opacity: 0.9 }} />
+        {travelled && (
+          <Polyline positions={travelled} pathOptions={{ color: '#4ade80', weight: 3, opacity: 0.9 }} />
         )}
-        {/* origin/destination markers */}
-        {hasRoute && route.map((coord, idx) => (
-          <Marker key={idx} position={coord} icon={L.divIcon({
-            html: `<div style="width:8px;height:8px;background:#fff;border:2px solid #4ade80;border-radius:50%"></div>`,
-            className: 'route-dot',
-            iconSize: [8,8],
-            iconAnchor: [4,4]
-          })} />
-        ))}
-        {hasPosition && (
-          <Marker position={[position.lat, position.lon]} icon={createPlaneIcon(position.heading)} />
+        {remaining && (
+          <Polyline positions={remaining} pathOptions={{ color: '#60a5fa', weight: 3, dashArray: '8 6', opacity: 0.9 }} />
+        )}
+        {hasOrigin && (
+          <Marker position={origin} icon={airportIcon('#f97316')} />
+        )}
+        {hasDest && (
+          <Marker position={destination} icon={airportIcon('#a855f7')} />
+        )}
+        {aircraftCoord && (
+          <Marker position={aircraftCoord} icon={createPlaneIcon(position.heading)} />
         )}
       </MapContainer>
 
-      {!hasRoute && !hasPosition && (
+      {!hasOrigin && !hasDest && !aircraftCoord && (
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -90,21 +104,6 @@ const Map = ({ position, route, selectedFlight }) => {
         }}>
           No position available<br />
           <span style={{ fontSize: '0.8rem' }}>Route will appear when origin/destination are known</span>
-        </div>
-      )}
-      {hasRoute && !hasPosition && (
-        <div style={{
-          position: 'absolute',
-          bottom: 12,
-          left: 12,
-          background: 'rgba(0,0,0,0.6)',
-          color: '#4ade80',
-          padding: '6px 10px',
-          borderRadius: 6,
-          fontSize: '0.8rem',
-          zIndex: 1000
-        }}>
-          Route shown · Live position unavailable
         </div>
       )}
     </div>

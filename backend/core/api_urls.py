@@ -12,4 +12,5 @@ urlpatterns = [
     path('weather/', include('weather.urls')),
     path('tracking/', include('tracking.urls')),
     path('booking/', include('booking.urls')),
+    path('ml/', include('ml.urls')),
 ]
