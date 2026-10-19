@@ -3,57 +3,74 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Building2, Plane, CloudSun, Search, MapPin, Navigation, AlertTriangle } from 'lucide-react';
+import { StatusChip } from '../components/ui';
 
-const airportIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const airportIcon = L.divIcon({
+  html: '<div style="width:11px;height:11px;background:var(--accent);border:2px solid #0a0e14;border-radius:50%"></div>',
+  className: 'airport-dot',
+  iconSize: [11, 11],
+  iconAnchor: [5, 5],
 });
 
-function fmt(val, suffix = '') {
-  if (val == null || val === '' || val === 'null') return 'Not available';
+const fmt = (val, suffix = '') => {
+  if (val == null || val === '' || val === 'null') return '—';
   return `${val}${suffix}`;
-}
-function fmtTime(val) {
-  if (!val) return 'Not available';
-  try { return new Date(val).toLocaleString(); } catch { return String(val); }
-}
+};
 
-function FlightRow({ flight, onSelect }) {
-  const statusColor = flight.status === 'en-route' || flight.status === 'active' ? '#4ade80'
-    : flight.status === 'landed' ? '#60a5fa'
-      : flight.status === 'cancelled' ? '#ef4444'
-        : flight.status === 'delayed' ? '#facc15' : '#a1a1aa';
-  return (
-    <div onClick={() => onSelect(flight)} style={{
-      background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: '0.85rem 1rem',
-      cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '0.45rem',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.98rem' }}>{fmt(flight.flight_number)}</span>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, background: statusColor === '#a1a1aa' ? '#27272a' : `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}55`, padding: '3px 8px', borderRadius: 999 }}>{fmt(flight.status)}</span>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem 1rem', fontSize: '0.82rem', color: '#d4d4d8' }}>
-        <span><b style={{ color: '#a1a1aa' }}>Airline:</b> {fmt(flight.airline)}</span>
-        <span><b style={{ color: '#a1a1aa' }}>Aircraft:</b> {fmt(flight.aircraft)}</span>
-        <span><b style={{ color: '#a1a1aa' }}>Route:</b> {fmt(flight.origin)} → {fmt(flight.destination)}</span>
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem 1rem', fontSize: '0.78rem', color: '#a1a1aa' }}>
-        <span>Gate {fmt(flight.gate)} · Term {fmt(flight.terminal)}</span>
-        <span>Sched dep {fmtTime(flight.scheduled_departure)}</span>
-        {flight.estimated_departure && <span>Est dep {fmtTime(flight.estimated_departure)}</span>}
-        {flight.delayed != null && <span style={{ color: '#facc15' }}>Delay {flight.delayed}m</span>}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem 1rem', fontSize: '0.78rem', color: '#71717a' }}>
-        {flight.scheduled_arrival && <span>Sched arr {fmtTime(flight.scheduled_arrival)}</span>}
-        {flight.estimated_arrival && <span>Est arr {fmtTime(flight.estimated_arrival)}</span>}
-      </div>
+const fmtTime = (val) => {
+  if (!val) return '—';
+  const text = String(val).trim().replace(' ', 'T');
+  const date = new Date(/[Zz]|[+-]\d{2}:?\d{2}$/.test(text) ? text : `${text}Z`);
+  if (Number.isNaN(date.getTime())) return String(val);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+
+const Board = ({ title, rows, direction, onSelect, expanded, onToggle }) => (
+  <section className="panel panel--flush">
+    <div className="panel__head">
+      <span className="panel__title">
+        {title} <span className="note" style={{ marginLeft: 6, fontWeight: 400 }}>{rows.length}</span>
+      </span>
+      {rows.length > 8 && (
+        <button className="btn btn--quiet" onClick={onToggle} style={{ padding: '4px 10px', fontSize: '0.8rem' }}>
+          {expanded ? 'Show less' : 'Show all'}
+        </button>
+      )}
     </div>
-  );
-}
+    {rows.length === 0 ? (
+      <div className="empty">Nothing scheduled.</div>
+    ) : (
+      <div style={{ maxHeight: expanded ? 'none' : 420, overflowY: 'auto' }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th>Airline</th>
+              <th>{direction === 'dep' ? 'To' : 'From'}</th>
+              <th>Scheduled</th>
+              <th>Gate</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(expanded ? rows : rows.slice(0, 8)).map((f, i) => (
+              <tr key={`${f.flight_number}-${i}`} className="is-clickable" onClick={() => onSelect(f)}>
+                <td className="is-strong mono">{fmt(f.flight_number)}</td>
+                <td className="mono">{fmt(f.airline)}</td>
+                <td className="mono">{fmt(direction === 'dep' ? f.destination : f.origin)}</td>
+                <td className="mono">{fmtTime(direction === 'dep' ? f.scheduled_departure : f.scheduled_arrival)}</td>
+                <td className="mono">{fmt(f.gate)}</td>
+                <td>
+                  <StatusChip status={f.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);
 
 const Airport = () => {
   const navigate = useNavigate();
@@ -72,7 +89,9 @@ const Airport = () => {
     try {
       const wRes = await fetch(`/api/weather/?lat=${lat}&lon=${lon}`);
       if (wRes.ok) setWeather(await wRes.json());
-    } catch { /* ignore */ }
+    } catch {
+      /* weather is optional */
+    }
   };
 
   const handleSearch = async (e) => {
@@ -98,20 +117,20 @@ const Airport = () => {
         setAirport(aData);
         if (aData.lat != null && aData.lon != null) fetchWeather(aData.lat, aData.lon);
       } else {
-        setError('Airport info not found.');
+        setError('Airport not found.');
       }
       if (fRes.ok) {
         const fData = await fRes.json();
         const deps = Array.isArray(fData.departures) ? fData.departures : [];
-        const arrs = Array.isArray(fData.arrivals) ? fData.arrivals : (Array.isArray(fData) ? fData : []);
+        const arrs = Array.isArray(fData.arrivals) ? fData.arrivals : Array.isArray(fData) ? fData : [];
         setFlights({ departures: deps, arrivals: arrs, last_updated: fData.last_updated });
       } else {
-        setFlightsError('Unable to load flights.');
+        setFlightsError('Unable to load the boards.');
       }
-      if (!aRes.ok && !fRes.ok) setError('No data for ' + q);
+      if (!aRes.ok && !fRes.ok) setError(`No data for ${q}.`);
     } catch {
       setError('Network error');
-      setFlightsError('Unable to load flights.');
+      setFlightsError('Unable to load the boards.');
     }
     setLoading(false);
     setFlightsLoading(false);
@@ -119,8 +138,7 @@ const Airport = () => {
 
   const handleSelectFlight = (flight) => {
     const fn = flight.flight_number;
-    if (!fn || fn === 'Not available' || fn === '—') return;
-    // Navigate to existing Tracking page with exact flight number — no inline tracking panel
+    if (!fn || fn === '—') return;
     navigate(`/tracking/${encodeURIComponent(fn)}`);
   };
 
@@ -128,111 +146,123 @@ const Airport = () => {
   const arrivals = flights?.arrivals || [];
 
   return (
-    <div style={{ maxWidth: 1220, margin: '0 auto', padding: '1.5rem 1.25rem' }}>
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 0.5rem 0' }}>
-        <Building2 color="#4ade80" /> Airport — Gates & Map
-      </h1>
-      <p style={{ color: 'var(--text-muted)', margin: '0 0 1.25rem 0' }}>
-        Search <b>DEL</b> (or any IATA). Map via <strong>OpenStreetMap</strong> (light, keyless). Weather via Open-Meteo. Flights via AirLabs schedules. Click any flight to track it.
-      </p>
-
-      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '0.6rem', borderRadius: 12, marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 280px', alignItems: 'center', background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 8, padding: '0.45rem 0.6rem' }}>
-          <Search size={16} color="#a1a1aa" />
-          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="IATA — e.g. DEL, JFK, DXB" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff' }} />
+    <div className="shell page">
+      <div className="page-head">
+        <div>
+          <h1>Airport</h1>
+          <p className="lede">Departure and arrival boards, local weather and the airport location.</p>
         </div>
-        <button type="submit" disabled={loading} style={{ background: '#4ade80', color: '#000', border: 'none', padding: '0.6rem 1.1rem', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
-          {loading ? 'Loading...' : 'Search airport'}
+      </div>
+
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: 10, marginBottom: 26, flexWrap: 'wrap', maxWidth: 460 }}>
+        <input
+          className="input input--code"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Airport code — DEL, JFK, DXB"
+          style={{ flex: '1 1 200px' }}
+          aria-label="Airport code"
+        />
+        <button type="submit" className="btn btn--primary" disabled={loading}>
+          {loading ? 'Loading…' : 'Open airport'}
         </button>
       </form>
 
-      {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', color: '#fecaca', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem', display: 'flex', gap: 8, alignItems: 'center' }}><AlertTriangle size={16} /> {error}</div>}
+      {error && <div className="alert alert--error">{error}</div>}
+      {flightsError && <div className="alert alert--error">{flightsError}</div>}
 
       {airport && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ height: 380 }}>
-              {(airport.lat != null && airport.lon != null) ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(260px, 1fr)', gap: 20, marginBottom: 24 }}>
+          <section className="panel panel--flush">
+            <div style={{ height: 340 }}>
+              {airport.lat != null && airport.lon != null ? (
                 <MapContainer center={[airport.lat, airport.lon]} zoom={10} style={{ width: '100%', height: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
                   <Marker position={[airport.lat, airport.lon]} icon={airportIcon}>
-                    <Popup><strong>{airport.name || airport.iata || airport.icao}</strong><br />{airport.iata || '—'} / {airport.icao || '—'}<br />Airport</Popup>
+                    <Popup>
+                      <strong>{airport.name || airport.iata || airport.icao}</strong>
+                      <br />
+                      {airport.iata || '—'} / {airport.icao || '—'}
+                    </Popup>
                   </Marker>
                 </MapContainer>
               ) : (
-                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#a1a1aa' }}>Coordinates not available</div>
-              )}
-            </div>
-            <div style={{ padding: '0.9rem 1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', color: '#d4d4d8', fontSize: '0.9rem', borderTop: '1px solid var(--border-color)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><MapPin size={14} /> {fmt(airport.name)}</span>
-              <span>IATA: {fmt(airport.iata)}</span>
-              <span>ICAO: {fmt(airport.icao)}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Navigation size={14} /> {airport.lat != null && airport.lon != null ? `${airport.lat}, ${airport.lon}` : 'Coords not available'}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '1rem' }}>
-              <h3 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: 8 }}><Plane size={16} color="#4ade80" /> Details</h3>
-              <div style={{ display: 'grid', gap: '0.6rem', fontSize: '0.92rem', color: '#d4d4d8' }}>
-                <div><span style={{ color: '#a1a1aa', fontSize: '0.75rem', textTransform: 'uppercase' }}>Name</span><br />{fmt(airport.name)}</div>
-                <div><span style={{ color: '#a1a1aa', fontSize: '0.75rem', textTransform: 'uppercase' }}>IATA / ICAO</span><br />{fmt(airport.iata)} / {fmt(airport.icao)}</div>
-                <div><span style={{ color: '#a1a1aa', fontSize: '0.75rem', textTransform: 'uppercase' }}>Lat/Lon</span><br />{airport.lat != null ? `${airport.lat}, ${airport.lon}` : 'Not available'}</div>
-              </div>
-            </div>
-            <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '1rem' }}>
-              <h3 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: 8 }}><CloudSun size={16} color="#4ade80" /> Weather</h3>
-              {!weather ? <p style={{ color: '#a1a1aa', margin: 0, fontSize: '0.85rem' }}>Weather not available.</p> : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 8, padding: '0.6rem 0.8rem', flex: '1 1 110px' }}><div style={{ color: '#a1a1aa', fontSize: '0.7rem', textTransform: 'uppercase' }}>Temp</div><div style={{ fontWeight: 700 }}>{fmt(weather.temperature, '°C')}</div></div>
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 8, padding: '0.6rem 0.8rem', flex: '1 1 110px' }}><div style={{ color: '#a1a1aa', fontSize: '0.7rem', textTransform: 'uppercase' }}>Wind</div><div style={{ fontWeight: 700 }}>{fmt(weather.wind_speed, ' km/h')}</div></div>
-                  <div style={{ background: '#09090b', border: '1px solid var(--border-color)', borderRadius: 8, padding: '0.6rem 0.8rem', flex: '1 1 110px' }}><div style={{ color: '#a1a1aa', fontSize: '0.7rem', textTransform: 'uppercase' }}>Dir</div><div style={{ fontWeight: 700 }}>{fmt(weather.wind_direction, '°')}</div></div>
+                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--text-3)' }}>
+                  Coordinates unavailable
                 </div>
               )}
             </div>
-          </div>
+            <div className="panel__body" style={{ padding: '16px 20px' }}>
+              <div style={{ fontWeight: 500, marginBottom: 6 }}>{fmt(airport.name)}</div>
+              <div className="row-gap note">
+                <span className="mono">IATA {fmt(airport.iata)}</span>
+                <span className="mono">ICAO {fmt(airport.icao)}</span>
+                <span className="mono">
+                  {airport.lat != null ? `${airport.lat}, ${airport.lon}` : '—'}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2 style={{ fontSize: '0.95rem', marginBottom: 16 }}>Weather here</h2>
+            {!weather ? (
+              <p className="note">No reading for this position.</p>
+            ) : (
+              <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                <div className="stat">
+                  <span className="stat__label">Temp</span>
+                  <span className="stat__value" style={{ fontSize: '1.15rem' }}>
+                    {fmt(weather.temperature, '°C')}
+                  </span>
+                </div>
+                <div className="stat">
+                  <span className="stat__label">Wind</span>
+                  <span className="stat__value" style={{ fontSize: '1.15rem' }}>
+                    {fmt(weather.wind_speed, '')}
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}> km/h</span>
+                  </span>
+                </div>
+                <div className="stat">
+                  <span className="stat__label">Dir</span>
+                  <span className="stat__value" style={{ fontSize: '1.15rem' }}>
+                    {fmt(weather.wind_direction, '°')}
+                  </span>
+                </div>
+              </div>
+            )}
+          </section>
         </div>
       )}
 
-      {flightsLoading && <p style={{ color: '#a1a1aa' }}>Loading departures... Loading arrivals...</p>}
-      {flightsError && <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', color: '#fecaca', padding: '0.75rem 1rem', borderRadius: 8, marginBottom: '1rem' }}>{flightsError}</div>}
+      {flightsLoading && <p className="note">Loading boards…</p>}
 
       {flights && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '1rem' }}>
-            <div onClick={() => setExpandDep(!expandDep)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, display: 'flex', gap: 8, alignItems: 'center' }}><Plane size={16} color="#4ade80" /> Departures <span style={{ color: '#a1a1aa', fontWeight: 400, fontSize: '0.85rem' }}>({departures.length})</span></h3>
-              <span style={{ color: '#4ade80', fontSize: '0.85rem', border: '1px solid #333', padding: '4px 8px', borderRadius: 6 }}>{expandDep ? '▲ Collapse' : '▼ Click to expand'}</span>
-            </div>
-            {departures.length === 0 ? <p style={{ color: '#a1a1aa' }}>No departing flights found.</p> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {(expandDep ? departures : departures.slice(0, 6)).map((f, i) => (
-                  <FlightRow key={`${f.flight_number}-${i}`} flight={f} onSelect={handleSelectFlight} />
-                ))}
-                {!expandDep && departures.length > 6 && <p style={{ color: '#71717a', fontSize: '0.8rem', margin: 0 }}>Showing 6 of {departures.length} — click header to expand</p>}
-              </div>
-            )}
-          </div>
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '1rem' }}>
-            <div onClick={() => setExpandArr(!expandArr)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, display: 'flex', gap: 8, alignItems: 'center' }}><Plane size={16} color="#60a5fa" /> Arrivals <span style={{ color: '#a1a1aa', fontWeight: 400, fontSize: '0.85rem' }}>({arrivals.length})</span></h3>
-              <span style={{ color: '#4ade80', fontSize: '0.85rem', border: '1px solid #333', padding: '4px 8px', borderRadius: 6 }}>{expandArr ? '▲ Collapse' : '▼ Click to expand'}</span>
-            </div>
-            {arrivals.length === 0 ? <p style={{ color: '#a1a1aa' }}>No arriving flights found.</p> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {(expandArr ? arrivals : arrivals.slice(0, 6)).map((f, i) => (
-                  <FlightRow key={`${f.flight_number}-${i}`} flight={f} onSelect={handleSelectFlight} />
-                ))}
-                {!expandArr && arrivals.length > 6 && <p style={{ color: '#71717a', fontSize: '0.8rem', margin: 0 }}>Showing 6 of {arrivals.length} — click header to expand</p>}
-              </div>
-            )}
-          </div>
+        <div className="grid-2">
+          <Board
+            title="Departures"
+            rows={departures}
+            direction="dep"
+            onSelect={handleSelectFlight}
+            expanded={expandDep}
+            onToggle={() => setExpandDep((v) => !v)}
+          />
+          <Board
+            title="Arrivals"
+            rows={arrivals}
+            direction="arr"
+            onSelect={handleSelectFlight}
+            expanded={expandArr}
+            onToggle={() => setExpandArr((v) => !v)}
+          />
         </div>
       )}
 
       {!airport && !flights && !loading && !flightsLoading && (
-        <div style={{ background: 'var(--bg-panel)', border: '1px dashed var(--border-color)', borderRadius: 12, padding: '2rem', textAlign: 'center', color: '#a1a1aa' }}>
-          Enter an airport code (e.g. DEL) to see map, departures and arrivals.
-        </div>
+        <div className="empty">Enter an airport code to open its boards.</div>
       )}
     </div>
   );

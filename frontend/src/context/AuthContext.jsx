@@ -3,6 +3,32 @@ import { useNavigate } from 'react-router-dom';
 
 export const AuthContext = createContext();
 
+// Read the claims out of a JWT. The role claim is set at registration
+// ('normal' for the normal sign-up, 'atc' for the ATC sign-up).
+function decodeToken(token) {
+  try {
+    const payload = token.split('.')[1];
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function userFromToken(token, fallbackUsername) {
+  if (!token) return null;
+  const claims = decodeToken(token);
+  if (!claims) {
+    return { authenticated: true, username: fallbackUsername || null, role: 'normal' };
+  }
+  return {
+    authenticated: true,
+    username: claims.username || fallbackUsername || null,
+    role: claims.role || 'normal',
+  };
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
@@ -10,8 +36,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
-      // In a real app we would decode JWT and set user details
-      setUser({ authenticated: true });
+      setUser(userFromToken(token));
     }
   }, []);
 
@@ -26,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
-        setUser({ authenticated: true, username });
+        setUser(userFromToken(data.access, username));
         navigate('/');
         return { success: true };
       }

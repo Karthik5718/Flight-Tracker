@@ -35,6 +35,9 @@ __pycache__/
 # Django local database
 db.sqlite3
 
+# ML training corpus (1.2 GB) — the trained artifact is kept, the raw data is not
+ML/flight_data_2024.csv
+
 # React
 node_modules/
 dist/

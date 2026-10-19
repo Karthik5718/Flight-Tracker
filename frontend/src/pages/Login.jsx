@@ -1,67 +1,71 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { LogIn, AlertTriangle } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setBusy(true);
     const result = await login(username, password);
     if (!result.success) {
       setError(result.error);
     }
+    setBusy(false);
   };
 
   return (
-    <div className="form-container">
-      <div className="form-title">
-        <LogIn size={24} color="#4ade80" />
-        <h2 style={{ margin: 0 }}>Login</h2>
+    <div className="auth">
+      <div className="auth__card">
+        <h1 className="auth__title">Sign in</h1>
+        <p className="auth__sub">Approach flight operations</p>
+
+        {error && <div className="alert alert--error">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="stack">
+          <div className="field">
+            <label htmlFor="login-username">Username</label>
+            <input
+              id="login-username"
+              className="input"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="login-password">Password</label>
+            <input
+              id="login-password"
+              className="input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          <button className="btn btn--primary btn--block" type="submit" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <div className="auth__foot">
+          <span>
+            No account yet? <Link to="/register">Create one</Link>
+          </span>
+          <span>
+            ATC controller? <Link to="/register-atc">Register for ATC access</Link>
+          </span>
+        </div>
       </div>
-      
-      {error && (
-        <div className="alert-error">
-          <AlertTriangle size={18} />
-          {error}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">Username</label>
-          <input 
-            className="form-input"
-            type="text" 
-            placeholder="Username" 
-            value={username} 
-            onChange={e => setUsername(e.target.value)} 
-            required 
-          />
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input 
-            className="form-input"
-            type="password" 
-            placeholder="••••••••" 
-            value={password} 
-            onChange={e => setPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        
-        <button type="submit" className="form-button">Login</button>
-      </form>
-      
-      <p style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p>
     </div>
   );
 };

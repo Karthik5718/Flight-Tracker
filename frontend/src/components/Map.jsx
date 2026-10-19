@@ -38,19 +38,19 @@ const Map = ({ position, route, selectedFlight }) => {
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <Plane size={24} color="#4ade80" fill="#4ade80" />
+        <Plane size={22} color="#4da3ff" fill="#4da3ff" />
       </div>
     );
     return L.divIcon({
       html: iconHtml,
       className: 'custom-plane-icon',
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
     });
   };
 
   const airportIcon = (color) => L.divIcon({
-    html: `<div style="width:10px;height:10px;background:${color};border:2px solid #fff;border-radius:50%"></div>`,
+    html: `<div style="width:10px;height:10px;background:${color};border:2px solid #0a0e14;border-radius:50%"></div>`,
     className: 'airport-dot',
     iconSize: [10, 10],
     iconAnchor: [5, 5]
@@ -73,16 +73,16 @@ const Map = ({ position, route, selectedFlight }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         {travelled && (
-          <Polyline positions={travelled} pathOptions={{ color: '#4ade80', weight: 3, opacity: 0.9 }} />
+          <Polyline positions={travelled} pathOptions={{ color: '#4da3ff', weight: 3, opacity: 0.85 }} />
         )}
         {remaining && (
-          <Polyline positions={remaining} pathOptions={{ color: '#60a5fa', weight: 3, dashArray: '8 6', opacity: 0.9 }} />
+          <Polyline positions={remaining} pathOptions={{ color: '#e0a02c', weight: 3, dashArray: '8 6', opacity: 0.85 }} />
         )}
         {hasOrigin && (
-          <Marker position={origin} icon={airportIcon('#f97316')} />
+          <Marker position={origin} icon={airportIcon('#46c46a')} />
         )}
         {hasDest && (
-          <Marker position={destination} icon={airportIcon('#a855f7')} />
+          <Marker position={destination} icon={airportIcon('#f4685f')} />
         )}
         {aircraftCoord && (
           <Marker position={aircraftCoord} icon={createPlaneIcon(position.heading)} />
@@ -95,15 +95,15 @@ const Map = ({ position, route, selectedFlight }) => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          color: '#888',
-          background: 'rgba(0,0,0,0.5)',
-          padding: '1rem',
-          borderRadius: '8px',
+          color: 'var(--text-2)',
+          background: 'rgba(10, 14, 20, 0.82)',
+          padding: '14px 18px',
+          borderRadius: 'var(--r-control)',
           zIndex: 1000,
-          textAlign: 'center'
+          textAlign: 'center',
+          fontSize: '0.9rem',
         }}>
-          No position available<br />
-          <span style={{ fontSize: '0.8rem' }}>Route will appear when origin/destination are known</span>
+          No aircraft selected
         </div>
       )}
     </div>

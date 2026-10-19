@@ -3,8 +3,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User, ATCProfile
-from .serializers import UserSerializer
+from .serializers import ATCTokenObtainPairSerializer, UserSerializer
+
+class LoginView(TokenObtainPairView):
+    """Login that hands the account role to the client via the access token."""
+    serializer_class = ATCTokenObtainPairSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

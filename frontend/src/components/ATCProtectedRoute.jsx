@@ -5,8 +5,8 @@ import { AuthContext } from '../context/AuthContext';
 const ATCProtectedRoute = ({ children }) => {
   const { user } = useContext(AuthContext);
   if (!user) return <Navigate to="/login" replace />;
-  // Frontend check is UX only — real enforcement is server-side via IsATCVerified
-  // If role info not in token, allow navigation but backend will return 403
+  // Only accounts registered as ATC employees may open the ATC section.
+  if (user.role !== 'atc') return <Navigate to="/" replace />;
   return children;
 };
 

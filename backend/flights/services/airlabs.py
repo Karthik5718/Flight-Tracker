@@ -7,6 +7,44 @@ def _get_key():
 
 BASE_URL = 'https://airlabs.co/api/v9'
 
+# Fields the schedule endpoint can fill in when the live flight endpoint
+# only returns position data.
+SCHEDULE_FIELDS = (
+    'scheduled_departure', 'estimated_departure', 'actual_departure',
+    'scheduled_arrival', 'estimated_arrival', 'actual_arrival',
+    'scheduled_departure_local', 'scheduled_arrival_local',
+    'scheduled_duration_minutes', 'departure_delay_minutes',
+    'arrival_delay_minutes', 'flight_delay_minutes',
+    'gate', 'terminal', 'arr_gate', 'arr_terminal',
+)
+
+
+def get_flight_schedule(flight_icao):
+    """Schedule entry for a flight (ICAO code), or None."""
+    api_key = _get_key()
+    if not api_key or not flight_icao:
+        return None
+
+    try:
+        response = requests.get(
+            f"{BASE_URL}/schedules",
+            params={
+                "flight_icao": flight_icao.upper(),
+                "api_key": api_key,
+                "limit": 5,
+            },
+            timeout=10,
+        )
+        if response.status_code != 200:
+            return None
+        items = response.json().get("response", [])
+        if not isinstance(items, list) or not items:
+            return None
+        return items[0]
+    except Exception:
+        return None
+
+
 def get_flight_details(flight_iata):
     api_key = _get_key()
 
@@ -44,7 +82,19 @@ def get_flight_details(flight_iata):
         if not flight:
             return None
 
-        return airlabs_to_flight(flight)
+        normalized = airlabs_to_flight(flight)
+
+        # The live endpoint can return position data only, so pull the
+        # schedule in as well when the times are missing.
+        if normalized and not normalized.get('scheduled_departure'):
+            schedule = get_flight_schedule(flight.get('flight_icao'))
+            scheduled = airlabs_to_flight(schedule) if schedule else None
+            if scheduled:
+                for field in SCHEDULE_FIELDS:
+                    if not normalized.get(field) and scheduled.get(field) is not None:
+                        normalized[field] = scheduled[field]
+
+        return normalized
 
     except Exception:
         return None
@@ -70,12 +120,13 @@ def get_schedules(arr_iata=None, dep_iata=None, max_pages=3, return_meta=False):
     total_items = None
     has_more = False
     limit = 100
-    offset = 0
+    page = 0
 
     for _ in range(max_pages):
         page_params = dict(params)
         page_params['limit'] = limit
-        page_params['offset'] = offset
+        # AirLabs treats `offset` as a page index, not an item count.
+        page_params['offset'] = page
         try:
             response = requests.get(f"{BASE_URL}/schedules", params=page_params, timeout=10)
             if response.status_code != 200:
@@ -95,7 +146,7 @@ def get_schedules(arr_iata=None, dep_iata=None, max_pages=3, return_meta=False):
                 if 'has_more' in req_meta and req_meta.get('has_more') is not None:
                     has_more = bool(req_meta.get('has_more'))
                 elif total_items is not None and isinstance(raw_list, list):
-                    has_more = (offset + len(raw_list)) < total_items
+                    has_more = (page * limit + len(raw_list)) < total_items
                 elif isinstance(raw_list, list):
                     has_more = len(raw_list) >= limit
                 else:
@@ -105,7 +156,7 @@ def get_schedules(arr_iata=None, dep_iata=None, max_pages=3, return_meta=False):
                 all_raw.extend(raw_list)
                 if not has_more or len(raw_list) < limit:
                     break
-                offset += len(raw_list)
+                page += 1
             else:
                 break
         except Exception:
@@ -127,8 +178,11 @@ def get_schedules(arr_iata=None, dep_iata=None, max_pages=3, return_meta=False):
         }
     return flights
 
-def get_airport_flights_airlabs(code, max_pages=3):
+def get_airport_flights_airlabs(code, max_pages=4):
     # Return {"departures": [...], "arrivals": [...], "metadata": {...}} using AirLabs schedules
+    # 4 pages of 100 = 400 movements, which covers the rest of the day so the
+    # upcoming arrivals/departures are included (page 1 alone is already over
+    # by the time the evening starts).
     code = code.upper()
     dep_data = get_schedules(dep_iata=code, max_pages=max_pages, return_meta=True)
     arr_data = get_schedules(arr_iata=code, max_pages=max_pages, return_meta=True)
